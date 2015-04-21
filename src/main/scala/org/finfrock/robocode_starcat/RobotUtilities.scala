@@ -14,10 +14,7 @@ object RobotUtilities {
     return math.sqrt(deltaX * deltaX + deltaY * deltaY);
   }
 
-  def getTurretHeadingFromFront(robot: BotCatable): Double = {
-    val gunHeading = robot.getGunHeading();
-    val bodyHeading = robot.getHeading();
-
+  def getTurretHeadingFromFront(gunHeading:Double, bodyHeading:Double): Double = {
     var bearing = gunHeading - bodyHeading;
 
     if (bearing < 0) {
@@ -25,14 +22,9 @@ object RobotUtilities {
     }
     return bearing;
   }
-
-  def findDistanceToWall(robot: BotCatable, degreesFromCurrentClockwise: Double): Double = {
-    val heading = robot.getHeading();
-    val x = robot.getX();
-    val y = robot.getY();
-    val battleFieldWidth = robot.getBattleFieldWidth();
-    val battleFieldHeight = robot.getBattleFieldHeight();
-
+  
+  def findDistanceToWall(heading:Double, x:Double, y:Double, battleFieldWidth:Double, 
+      battleFieldHeight:Double, degreesFromCurrentClockwise: Double): Double = {
     val degreesAfterTurn = turnClockwise(heading,
       degreesFromCurrentClockwise);
 
@@ -94,7 +86,8 @@ object RobotUtilities {
   }
 
   def findDistanceToOtherTanks(directionLooking: Double,
-                               robot: BotCatable, random: Random): Double = {
+                               heading: Double, x:Double, y:Double, random: Random, 
+                               tanks:List[Tank]): Double = {
     var modifiedHeadingToLook = directionLooking;
 
     val amountToAdd = random.nextInt(30);
@@ -105,22 +98,18 @@ object RobotUtilities {
       modifiedHeadingToLook -= amountToAdd;
     }
 
-    findDistanceOpponets(robot,
+    findDistanceOpponets(heading, x, y, tanks,
       modifiedHeadingToLook)
   }
 
-  def findDistanceOpponets(robot: BotCatable,
+  def findDistanceOpponets(heading: Double, x:Double, y:Double, tanks:List[Tank],
                            degreesFromCurrentClockwise: Double): Double = {
-    var distance = Double.MaxValue;
-
-    val heading = robot.getHeading();
-    val x = robot.getX();
-    val y = robot.getY();
+    var distance = Double.MaxValue
 
     val degreesAfterTurn = turnClockwise(heading,
       degreesFromCurrentClockwise);
 
-    for (tank <- robot.getTanks()) {
+    for (tank <- tanks) {
       val angleToTank = bearingToTank(tank, x, y);
 
       var tempDistance = distanceToTank(tank, x, y);

@@ -3,28 +3,31 @@ package org.finfrock.robocode_starcat
 import org.finfrock.robocode_starcat.genenticalgorithm.Chromosome
 import org.finfrock.starcat.configuration.ParameterData
 import org.finfrock.starcat.configuration.SlipnetBuilder
-import org.finfrock.robocode_starcat.codelets.PerformerBehaviorCodelet
 import org.finfrock.robocode_starcat.genenticalgorithm.BotcatChromosome
 import java.util.UUID
 import org.finfrock.robocode_starcat.codelets.FuzzyObstacleBehaviorCodelet
-import org.finfrock.starcat.codelets.SlipnetNodeActivationRecipient
-import org.finfrock.robocode_starcat.codelets.TargetObserverBehaviorCodelet
-import org.finfrock.robocode_starcat.codelets.EnergyLevelBehaviorCodlet
-import org.finfrock.robocode_starcat.codelets.EastBodyOrientationObserverCodelet
-import org.finfrock.robocode_starcat.codelets.WestBodyOrientationObserverCodelet
-import org.finfrock.robocode_starcat.codelets.NorthBodyOrientationObserverCodelet
-import org.finfrock.robocode_starcat.codelets.SouthBodyOrientationObserverCodelet
-import org.finfrock.robocode_starcat.codelets.RightTurretOrientationObserverCodelet
-import org.finfrock.robocode_starcat.codelets.LeftTurretOrientationObserverCodelet
-import org.finfrock.robocode_starcat.codelets.BackwardTurretOrientationObserverCodelet
-import org.finfrock.robocode_starcat.codelets.ForwardTurretOrientationObserverCodelet
-import org.finfrock.robocode_starcat.codelets.BulletHitMissBehaviorCodlet
-import org.finfrock.starcat.slipnet.Slipnet
+import org.finfrock.starcat.codelets.SlipnetNodeActorActivationRecipient
+import akka.actor.ActorRef
+import org.finfrock.robocode_starcat.codelets.PerformerBehaviorCodeletActor
+import org.finfrock.robocode_starcat.codelets.FuzzyObstacleBehaviorCodelet
+import org.finfrock.robocode_starcat.codelets.FuzzyObstacleBehaviorCodeletActor
+import org.finfrock.robocode_starcat.codelets.TargetObserverBehaviorCodeletActor
+import org.finfrock.robocode_starcat.codelets.EnergyLevelBehaviorCodletActor
+import org.finfrock.robocode_starcat.codelets.EastBodyOrientationObserverCodeletActor
+import org.finfrock.robocode_starcat.codelets.WestBodyOrientationObserverCodeletActor
+import org.finfrock.robocode_starcat.codelets.NorthBodyOrientationObserverCodeletActor
+import org.finfrock.robocode_starcat.codelets.SouthBodyOrientationObserverCodeletActor
+import org.finfrock.robocode_starcat.codelets.RightTurretOrientationObserverCodeletActor
+import org.finfrock.robocode_starcat.codelets.LeftTurretOrientationObserverCodeletActor
+import org.finfrock.robocode_starcat.codelets.BackwardTurretOrientationObserverCodeletActor
+import org.finfrock.robocode_starcat.codelets.ForwardTurretOrientationObserverCodeletActor
+import org.finfrock.robocode_starcat.codelets.BulletHitMissBehaviorCodletActor
+import akka.actor.ActorSystem
 
 /**
  * @author lancewf
  */
-class RobocodeSlipnetBuilder extends SlipnetBuilder {
+class RobocodeSlipnetBuilder(system:ActorSystem) extends SlipnetBuilder(system) {
   // --------------------------------------------------------------------------
   // Private Static Data
   // --------------------------------------------------------------------------
@@ -35,7 +38,7 @@ class RobocodeSlipnetBuilder extends SlipnetBuilder {
   // Public Members
   // -------------------------------------------------------------------------
 
-  def buildSlipnet(chromosome:Chromosome):Slipnet = {
+  def buildSlipnet(chromosome:Chromosome):ActorRef = {
     initializeSystemConfigurations(chromosome)
     createSlipnetNodes(chromosome)
     createLinks(chromosome)
@@ -54,16 +57,15 @@ class RobocodeSlipnetBuilder extends SlipnetBuilder {
     createSlipnetNode(OBSERVER, 100, 99, 1);
 
     for (slipnetNode <- chromosome.getSlipnetNodeList()) {
-      val memoryLevel = chromosome.getMemoryLevel(slipnetNode);
+      val memoryLevel = chromosome.getMemoryLevel(slipnetNode)
 
       //only the CodeletPreformers use this. 
       val activationThreashold =
-        chromosome.getActivationThreshold(slipnetNode);
+        chromosome.getActivationThreshold(slipnetNode)
 
-      val initalActivation = chromosome.getInitalActivation(slipnetNode);
+      val initalActivation = chromosome.getInitalActivation(slipnetNode)
 
-      createSlipnetNode(slipnetNode,
-        memoryLevel, initalActivation, activationThreashold);
+      createSlipnetNode(slipnetNode, memoryLevel, initalActivation, activationThreashold)
     }
   }
 
@@ -176,145 +178,177 @@ class RobocodeSlipnetBuilder extends SlipnetBuilder {
   // --------------------------------------------------------------------------
 
   private def createCodeletPreformers(chromosome: Chromosome) {
-    createCodelet(new PerformerBehaviorCodelet(robotAction = RobotActionType.FORWARD),
-      BotcatChromosome.MOVE_FORWARD);
-
-    createCodelet(new PerformerBehaviorCodelet(robotAction = RobotActionType.FIRE),
-      BotcatChromosome.FIRE);
-
-    createCodelet(new PerformerBehaviorCodelet(robotAction = RobotActionType.DONT_MOVE),
-      BotcatChromosome.DO_NOT_MOVE);
-
-    createCodelet(new PerformerBehaviorCodelet(robotAction = RobotActionType.BACKWARD),
-      BotcatChromosome.MOVE_BACKWARD);
+    
+    createCodelet(
+        PerformerBehaviorCodeletActor.getProps(RobotActionType.FORWARD), urgency = 100, numberToEmit = 1,
+      slipnetNodeName = BotcatChromosome.MOVE_FORWARD)
 
     createCodelet(
-      new PerformerBehaviorCodelet(robotAction = RobotActionType.TURN_RIGHT),
-      BotcatChromosome.TURN_RIGHT);
+        PerformerBehaviorCodeletActor.getProps(RobotActionType.FIRE), urgency = 100, numberToEmit = 1,
+      slipnetNodeName = BotcatChromosome.FIRE)
+      
+    createCodelet(
+        PerformerBehaviorCodeletActor.getProps(RobotActionType.DONT_MOVE), urgency = 100, numberToEmit = 1,
+      slipnetNodeName = BotcatChromosome.DO_NOT_MOVE)
+      
+    createCodelet(
+        PerformerBehaviorCodeletActor.getProps(RobotActionType.BACKWARD), urgency = 100, numberToEmit = 1,
+      slipnetNodeName = BotcatChromosome.MOVE_BACKWARD)
 
-    createCodelet(new PerformerBehaviorCodelet(robotAction = RobotActionType.TURN_LEFT),
-      BotcatChromosome.TURN_LEFT);
+    createCodelet(
+        PerformerBehaviorCodeletActor.getProps(RobotActionType.TURN_RIGHT), urgency = 100, numberToEmit = 1,
+      slipnetNodeName = BotcatChromosome.TURN_RIGHT)
 
-    createCodelet(new PerformerBehaviorCodelet(robotAction = RobotActionType.TURN_TURRET_RIGHT),
-      BotcatChromosome.TURN_TURRET_RIGHT);
-
-    createCodelet(new PerformerBehaviorCodelet(robotAction = RobotActionType.TURN_TURRET_LEFT),
-      BotcatChromosome.TURN_TURRET_LEFT);
+    createCodelet(
+        PerformerBehaviorCodeletActor.getProps(RobotActionType.TURN_LEFT), urgency = 100, numberToEmit = 1,
+     slipnetNodeName= BotcatChromosome.TURN_LEFT)
+      
+    createCodelet(
+        PerformerBehaviorCodeletActor.getProps(RobotActionType.TURN_TURRET_RIGHT), urgency = 100, numberToEmit = 1,
+      slipnetNodeName = BotcatChromosome.TURN_TURRET_RIGHT)
+      
+    createCodelet(
+        PerformerBehaviorCodeletActor.getProps(RobotActionType.TURN_TURRET_LEFT), urgency = 100, numberToEmit = 1,
+      slipnetNodeName = BotcatChromosome.TURN_TURRET_LEFT)
   }
 
   private def createCodeletObservers(chromosome: Chromosome) {
     val bufferDistance = chromosome.getBufferDistance();
 
     // configuration/codelet
-    createCodelet(new FuzzyObstacleBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.OBSTACLE_LEFT), 100)),
-      failureActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.CLEAR_LEFT), 100)),
-      FuzzyObstacleBehaviorCodelet.LEFT, bufferDistance), sourceNode = OBSERVER)
+    createCodelet(FuzzyObstacleBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.OBSTACLE_LEFT), 100)),
+      failureActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.CLEAR_LEFT), 100)),
+      headingToLook = FuzzyObstacleBehaviorCodelet.LEFT, 
+      bufferDistance = bufferDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+    createCodelet(FuzzyObstacleBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.OBSTACLE_RIGHT), 100)),
+      failureActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.CLEAR_RIGHT), 100)),
+      headingToLook = FuzzyObstacleBehaviorCodelet.RIGHT, 
+      bufferDistance = bufferDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+    createCodelet(FuzzyObstacleBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.OBSTACLE_FRONT), 100)),
+      failureActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.CLEAR_FOREWARD), 100)),
+      headingToLook = FuzzyObstacleBehaviorCodelet.FORWARD, 
+      bufferDistance = bufferDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+    createCodelet(FuzzyObstacleBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.OBSTACLE_BACKWARD), 100)),
+      failureActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.CLEAR_BACKWARD), 100)),
+      headingToLook = FuzzyObstacleBehaviorCodelet.BACKWARD, 
+      bufferDistance = bufferDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName= OBSERVER)
 
-    createCodelet(new FuzzyObstacleBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.OBSTACLE_RIGHT), 100)),
-      failureActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.CLEAR_RIGHT), 100)),
-      FuzzyObstacleBehaviorCodelet.RIGHT, bufferDistance),
-      OBSERVER)
-
-    createCodelet(new FuzzyObstacleBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.OBSTACLE_FRONT), 100)),
-      failureActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.CLEAR_FOREWARD), 100)),
-      FuzzyObstacleBehaviorCodelet.FORWARD, bufferDistance),
-      OBSERVER)
-    createCodelet(new FuzzyObstacleBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.OBSTACLE_BACKWARD), 100)),
-      failureActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.CLEAR_BACKWARD), 100)),
-      FuzzyObstacleBehaviorCodelet.BACKWARD, bufferDistance),
-      OBSERVER);
-
-    val targetDistance = chromosome.getTargetDistance();
-
+    val targetDistance = chromosome.getTargetDistance()
+    
     // Target Observers
-    createCodelet(new TargetObserverBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_FORWARD), 100)),
-      TargetObserverBehaviorCodelet.FORWARD, targetDistance),
-      OBSERVER)
-    createCodelet(new TargetObserverBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_FORWARD_RIGHT), 100)),
-      TargetObserverBehaviorCodelet.FORWARD_RIGHT, targetDistance),
-      OBSERVER)
-    createCodelet(new TargetObserverBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_RIGHT), 100)),
-      TargetObserverBehaviorCodelet.RIGHT, targetDistance),
-      OBSERVER)
-    createCodelet(new TargetObserverBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_BACKWARD_RIGHT), 100)),
-      TargetObserverBehaviorCodelet.BACKWARD_RIGHT, targetDistance),
-      OBSERVER)
-    createCodelet(new TargetObserverBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_BACKWARD), 100)),
-      TargetObserverBehaviorCodelet.BACKWARD, targetDistance),
-      OBSERVER)
-    createCodelet(new TargetObserverBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_BACKWARD_LEFT), 100)),
-      TargetObserverBehaviorCodelet.BACKWARD_LEFT, targetDistance),
-      OBSERVER)
-    createCodelet(new TargetObserverBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_LEFT), 100)),
-      TargetObserverBehaviorCodelet.LEFT, targetDistance),
-      OBSERVER)
-    createCodelet(new TargetObserverBehaviorCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_FORWARD_LEFT), 100)),
-      TargetObserverBehaviorCodelet.FORWARD_LEFT, targetDistance),
-      OBSERVER)
+    createCodelet(TargetObserverBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_FORWARD), 100)),
+      headingToLook = TargetObserverBehaviorCodeletActor.FORWARD, 
+      targetDistance = targetDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+    createCodelet(TargetObserverBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_FORWARD_RIGHT), 100)),
+      headingToLook = TargetObserverBehaviorCodeletActor.FORWARD_RIGHT, 
+      targetDistance = targetDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+    createCodelet(TargetObserverBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_RIGHT), 100)),
+      headingToLook = TargetObserverBehaviorCodeletActor.RIGHT, 
+      targetDistance = targetDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+    createCodelet(TargetObserverBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_BACKWARD_RIGHT), 100)),
+      headingToLook = TargetObserverBehaviorCodeletActor.BACKWARD_RIGHT, 
+      targetDistance = targetDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+    createCodelet(TargetObserverBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_BACKWARD), 100)),
+      headingToLook = TargetObserverBehaviorCodeletActor.BACKWARD, 
+      targetDistance = targetDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
 
-    val value0 = chromosome.getEnergyLevelPeg(0);
-    val value1 = chromosome.getEnergyLevelPeg(1);
-    val value2 = chromosome.getEnergyLevelPeg(2);
-    val value3 = chromosome.getEnergyLevelPeg(3);
+    createCodelet(TargetObserverBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_BACKWARD_LEFT), 100)),
+      headingToLook = TargetObserverBehaviorCodeletActor.BACKWARD_LEFT, 
+      targetDistance = targetDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
 
-    createCodelet(new EnergyLevelBehaviorCodlet(
+    createCodelet(TargetObserverBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_LEFT), 100)),
+      headingToLook = TargetObserverBehaviorCodeletActor.LEFT, 
+      targetDistance = targetDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+
+    createCodelet(TargetObserverBehaviorCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TARGET_FORWARD_LEFT), 100)),
+      headingToLook = TargetObserverBehaviorCodeletActor.FORWARD_LEFT, 
+      targetDistance = targetDistance),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+
+    val value0 = chromosome.getEnergyLevelPeg(0)
+    val value1 = chromosome.getEnergyLevelPeg(1)
+    val value2 = chromosome.getEnergyLevelPeg(2)
+    val value3 = chromosome.getEnergyLevelPeg(3)
+    
+    createCodelet(EnergyLevelBehaviorCodletActor.getProps(
       value0, value1, value2, value3,
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.ENERGY_LOW_NODE_NAME), 100)),
-      failureActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.ENERGY_HIGH_NODE_NAME), 100))), 
-      OBSERVER)
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.ENERGY_LOW_NODE_NAME), 100)),
+      failureActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.ENERGY_HIGH_NODE_NAME), 100))),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
 
     //Orientation
-    createCodelet(new EastBodyOrientationObserverCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.ORIENTATION_EAST), 100))),
-      OBSERVER)
+      
+    createCodelet(EastBodyOrientationObserverCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.ORIENTATION_EAST), 100))),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+    createCodelet(WestBodyOrientationObserverCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.ORIENTATION_WEST), 100))),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+    createCodelet(NorthBodyOrientationObserverCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.ORIENTATION_NORTH), 100))),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+    createCodelet(SouthBodyOrientationObserverCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.ORIENTATION_SOUTH), 100))),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
 
-    createCodelet(new WestBodyOrientationObserverCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.ORIENTATION_WEST), 100))),
-      OBSERVER)
+    createCodelet(RightTurretOrientationObserverCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TURRET_RIGHT), 100))),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
 
-    createCodelet(new NorthBodyOrientationObserverCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.ORIENTATION_NORTH), 100))),
-      OBSERVER)
+    createCodelet(LeftTurretOrientationObserverCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TURRET_LEFT), 100))),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
 
-    createCodelet(new SouthBodyOrientationObserverCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.ORIENTATION_SOUTH), 100))),
-      OBSERVER)
-
-    createCodelet(new RightTurretOrientationObserverCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TURRET_RIGHT), 100))),
-      OBSERVER)
-
-    createCodelet(new LeftTurretOrientationObserverCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TURRET_LEFT), 100))),
-      OBSERVER)
-
-    createCodelet(new BackwardTurretOrientationObserverCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TURRET_BACKWARD), 100))),
-      OBSERVER)
-
-    createCodelet(new ForwardTurretOrientationObserverCodelet(
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.TURRET_FORWARD), 100))),
-      OBSERVER)
+    createCodelet(BackwardTurretOrientationObserverCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TURRET_BACKWARD), 100))),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
+      
+    createCodelet(ForwardTurretOrientationObserverCodeletActor.getProps(
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.TURRET_FORWARD), 100))),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
 
     val bulletAccuracySuccessOne = chromosome.getBulletAccuracySuccessOne();
     val bulletAccuracyFailureOne = chromosome.getBulletAccuracyFailureOne();
 
-    createCodelet(new BulletHitMissBehaviorCodlet(bulletAccuracySuccessOne,
+    createCodelet(BulletHitMissBehaviorCodletActor.getProps(
+      bulletAccuracySuccessOne,
       bulletAccuracyFailureOne,
-      successActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.BULLET_HIT), 100)),
-      failureActivationRecipients = List(SlipnetNodeActivationRecipient(getSlipnetNode(BotcatChromosome.BULLET_MISS), 100))),
-      OBSERVER)
+      successActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.BULLET_HIT), 100)),
+      failureActivationRecipients = List(SlipnetNodeActorActivationRecipient(getSlipnetNode(BotcatChromosome.BULLET_MISS), 100))),
+      urgency = 1, numberToEmit = 1, slipnetNodeName = OBSERVER)
   }
 }

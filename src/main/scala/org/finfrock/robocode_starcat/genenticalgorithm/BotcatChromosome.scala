@@ -17,83 +17,29 @@ class BotcatChromosome(properties1: Properties) extends SizableChromosome(proper
   // Public Member
   // --------------------------------------------------------------------------
 
-  private var slipnetNodes:List[String] = Nil
-
   private def getInternalSlipnetNodes():List[String] = {
-    var slipnetNodes = List[String]()
-    
-    val numberOfExtraNodes = getNumberOfExtraNodes();
-
-    for (count <- 0 until numberOfExtraNodes) {
-      slipnetNodes ::= (BotcatChromosome.EXTRA_NODE_TAG + count)
-    }
-    
-    return slipnetNodes;
+    (for (count <- 0 until getNumberOfExtraNodes()) yield {
+      (BotcatChromosome.EXTRA_NODE_TAG + count)
+    }).toList
   }
   
   private def getActionSlipnetNodes():List[String] = {
-    var slipnetNodes = List[String]()
-    
-    slipnetNodes ::= TURN_RIGHT
-    slipnetNodes ::= TURN_LEFT
-    slipnetNodes ::= MOVE_FORWARD
-    slipnetNodes ::= MOVE_BACKWARD
-    slipnetNodes ::= DO_NOT_MOVE
-    slipnetNodes ::= FIRE
-
-    slipnetNodes ::= TURN_TURRET_RIGHT
-    slipnetNodes ::= TURN_TURRET_LEFT
-    
-    return slipnetNodes;
+    List(TURN_RIGHT, TURN_LEFT, MOVE_FORWARD,  MOVE_BACKWARD, DO_NOT_MOVE, FIRE, 
+        TURN_TURRET_RIGHT, TURN_TURRET_LEFT)
   }
   
   private def getObservationSlipnetNodes():List[String] = {
-    var slipnetNodes = List[String]()
-    
-    slipnetNodes ::= OBSTACLE_LEFT
-    slipnetNodes ::= OBSTACLE_RIGHT
-    slipnetNodes ::= OBSTACLE_FRONT
-    slipnetNodes ::= OBSTACLE_BACKWARD
-
-    slipnetNodes ::= CLEAR_LEFT
-    slipnetNodes ::= CLEAR_RIGHT
-    slipnetNodes ::= CLEAR_FOREWARD
-    slipnetNodes ::= CLEAR_BACKWARD
-
-    slipnetNodes ::= TARGET_FORWARD
-    slipnetNodes ::= TARGET_FORWARD_RIGHT
-    slipnetNodes ::= TARGET_RIGHT
-    slipnetNodes ::= TARGET_BACKWARD_RIGHT
-    slipnetNodes ::= TARGET_BACKWARD
-    slipnetNodes ::= TARGET_BACKWARD_LEFT
-    slipnetNodes ::= TARGET_LEFT
-    slipnetNodes ::= TARGET_FORWARD_LEFT
-    slipnetNodes ::= ENERGY_HIGH_NODE_NAME
-    slipnetNodes ::= ENERGY_LOW_NODE_NAME
-    
-    slipnetNodes ::= ORIENTATION_NORTH
-    slipnetNodes ::= ORIENTATION_SOUTH
-    slipnetNodes ::= ORIENTATION_WEST
-    slipnetNodes ::= ORIENTATION_EAST
-
-    slipnetNodes ::= TURRET_RIGHT
-    slipnetNodes ::= TURRET_LEFT
-    slipnetNodes ::= TURRET_BACKWARD
-    slipnetNodes ::= TURRET_FORWARD
-    slipnetNodes ::= BULLET_HIT
-    slipnetNodes ::= BULLET_MISS
-    
-    return slipnetNodes;
+    List(OBSTACLE_LEFT,OBSTACLE_RIGHT, OBSTACLE_FRONT, OBSTACLE_BACKWARD, 
+        CLEAR_LEFT, CLEAR_RIGHT, CLEAR_FOREWARD, CLEAR_BACKWARD, TARGET_FORWARD, 
+        TARGET_FORWARD_RIGHT, TARGET_RIGHT, TARGET_BACKWARD_RIGHT, TARGET_BACKWARD, 
+        TARGET_BACKWARD_LEFT, TARGET_LEFT, TARGET_FORWARD_LEFT, 
+        ENERGY_HIGH_NODE_NAME, ENERGY_LOW_NODE_NAME, ORIENTATION_NORTH, 
+        ORIENTATION_SOUTH, ORIENTATION_WEST, ORIENTATION_EAST, TURRET_RIGHT, 
+        TURRET_LEFT, TURRET_BACKWARD, TURRET_FORWARD, BULLET_HIT, BULLET_MISS)
   }
   
   def getSlipnetNodeList():List[String] = {
-    if (slipnetNodes == Nil) {
-      slipnetNodes :::= getObservationSlipnetNodes()
-      slipnetNodes :::= getActionSlipnetNodes()
-      slipnetNodes :::= getInternalSlipnetNodes()
-    }
-
-    return slipnetNodes;
+       getObservationSlipnetNodes() ::: getActionSlipnetNodes() ::: getInternalSlipnetNodes()
   }
 
   /**

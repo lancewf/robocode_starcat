@@ -49,6 +49,7 @@ class InfightingFitnessTest(listener:BotCatListener) extends IFitnessTest {
     
     val bestBotChromosome = new PropertyUtilities().readInProperties(bestBotFile) match{
       case Some(properties) => new BotcatChromosome(properties)
+      case None => throw new Exception("property file not read in: " + bestBotFile.getAbsolutePath)
     }
      
     val bestBotIndividual = new Individual(bestBotChromosome);

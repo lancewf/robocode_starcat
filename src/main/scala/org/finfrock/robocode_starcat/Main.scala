@@ -8,19 +8,24 @@ import org.finfrock.robocode_starcat.genenticalgorithm.GenenticAlgorithm
 import org.finfrock.robocode_starcat.genenticalgorithm.GenerationRunner
 import org.finfrock.robocode_starcat.genenticalgorithm.GenenticUI
 
-object Factory {
+object Main {
   private val INITIAL_POPULATION_SIZE = 50;
 
   def main(args: Array[String]) {
+    startGenenticAlgorithm(args)
+  }
+    
+
+  private def startGenenticAlgorithm(args: Array[String]){
     if (args.length != 1) {
-      System.err.println("args.length: " + args.length);
+      System.err.println("args.length: " + args.length)
       return ;
     }
 
-    val initalAgent = new File(args(0));
+    val initalAgent = new File(args(0))
 
     if (!initalAgent.exists()) {
-      System.err.println("inital agent not found: " + args(0));
+      System.err.println("inital agent not found: " + args(0))
       return ;
     }
 
@@ -28,25 +33,26 @@ object Factory {
       case Some(properties) => {
         val initialChromosome = new BotcatChromosome(properties)
 
-        val initialIndividual = new Individual(initialChromosome);
+        val initialIndividual = new Individual(initialChromosome)
 
-        val listener = new BotCatListener();
+        val listener = new BotCatListener()
 
-        val test = new InfightingFitnessTest(listener);
+        val test = new InfightingFitnessTest(listener)
         //      IFitnessTest test = new DummyFitnessTest();
 
         val genenticAlgorithm = new GenenticAlgorithm(
-          INITIAL_POPULATION_SIZE, test, initialIndividual);
+          INITIAL_POPULATION_SIZE, test, initialIndividual)
 
         val generationRunner = new GenerationRunner(
-          genenticAlgorithm);
+          genenticAlgorithm)
 
         val ui = new GenenticUI(generationRunner, test);
 
-        genenticAlgorithm.setProgress(ui.getProgressBar());
+        genenticAlgorithm.setProgress(ui.getProgressBar())
 
         ui.setVisible(true);
       }
+      case None => throw new Exception("property file not read in: " + args(0))
     }
   }
 }

@@ -86,6 +86,7 @@ class GenerationRunner(genenticAlgorithm: GenenticAlgorithm) {
                 val individual = new Individual(loadedChromosome)
                 population ::= individual
               }
+              case None => throw new Exception("property file not read in: " + agentFile.getAbsolutePath)
             }
 
           }

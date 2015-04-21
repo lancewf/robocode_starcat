@@ -6,14 +6,14 @@ import robocode.RobotDeathEvent
 /**
  * @author lancewf
  */
-class TankManager(robot:BotCatable) {
+class TankManager() {
   private var tanks = List[Tank]()
   private val tankBuilder = new TankBuilder()
   
   def getTanks() = tanks
   
   def onScannedRobot(e:ScannedRobotEvent, robotX:Double,
-      robotY:Double, robotHeading:Double) {
+      robotY:Double, robotHeading:Double, robotTime:Long) {
     val newTank = tankBuilder.buildTank(e, robotX, robotY, robotHeading);
     findTank(newTank.name) match{
       case Some(foundTank) => removeTank(foundTank)
@@ -22,27 +22,27 @@ class TankManager(robot:BotCatable) {
     
     addTank(newTank)
     
-    update()
+    update(robotTime)
   }
   
-  def onRobotDeath(event:RobotDeathEvent) {
+  def onRobotDeath(event:RobotDeathEvent, robotTime:Long) {
     findTank(event.getName()) match{
       case Some(foundTank) =>{
         removeTank(foundTank)
       } case None => // do nothing
     }
     
-    update();
+    update(robotTime)
   }
   
   // -------------------------------------------------------------------------
   // Private Members
   // -------------------------------------------------------------------------
   
-  private def update(){
+  private def update(robotTime:Long){
     var removedTanks = List[Tank]()
       for (tank <- tanks) {
-        val diff = robot.getTime() - tank.time
+        val diff = robotTime - tank.time
         if (diff > 500) {
           removedTanks ::= tank
         }

@@ -14,32 +14,20 @@ import java.awt.Color
 import org.finfrock.robocode_starcat.RobotActionType._
 import org.finfrock.robocode_starcat.genenticalgorithm.Chromosome
 import org.finfrock.robocode_starcat.genenticalgorithm.BotcatChromosome
+import akka.pattern.{ ask, pipe }
+import akka.util.Timeout
+import scala.concurrent.duration._
+import scala.concurrent.Await
 
-class BotCat extends AdvancedRobot with BotCatable {
-  private var isAlive = false;
-  private val CHROMOSOME_FILE_NAME = "BotCat.properties"
+class BotCat2 extends BotCat
+class BotCat extends AdvancedRobot {
+  private val botCatPainter = new BotCatPainter(this)
+  private val CHROMOSOME_FILE_NAME = "BotCat.chromosome.properties"
+  private lazy val turnAmount = chromosome.getTurnAmount()
+  private lazy val fireAmount = chromosome.getFireAmount()
+  private lazy val forwardMovementAmount = chromosome.getMovementAmount()
   private lazy val chromosome = createChromosome()
-  private var turnAmount = 0.0;
-  private var fireAmount = 0.0;
-  private var forwardMovementAmount = 0.0
-  private val botCatPainter = new BotCatPainter(this);
-  private val robotMovement = new RobotActionManager();
-  private lazy val starCatRunner:StartCatControler = new StartCatControler(this);
-  private val tankManager = new TankManager(this);
-  private val bulletManager = new BulletManager(this);
-
-  // ---------------------------------------------------------------------------
-  // BotCatable Methods
-  // ---------------------------------------------------------------------------
-
-  def setMovement(movement: RobotActionType) {
-    System.out.println(movement);
-    robotMovement.setMovement(movement);
-  }
-
-  def getTanks(): List[Tank] = tankManager.getTanks()
-
-  def getChromosome() = chromosome
+  private lazy val starCatRunner = new StartCatControler(this, chromosome)
 
   // ---------------------------------------------------------------------------
   // AdvancedRobot Methods
@@ -47,21 +35,10 @@ class BotCat extends AdvancedRobot with BotCatable {
 
   
   override def run() {
-    turnAmount = chromosome.getTurnAmount()
-    fireAmount = chromosome.getFireAmount()
-    forwardMovementAmount = chromosome.getMovementAmount()
-    bulletManager.setMaximumBulletAge(chromosome.getMaximumBulletAge())
     applyGeniticFeatures()
     starCatRunner.start()
-
-    isAlive = true
-    var count = 0L
-    while (isAlive) {
-      if (count == 100000) {
+    while (true) {
         move()
-        count = 0;
-      }
-      count += 1;
     }
   }
 
@@ -69,34 +46,26 @@ class BotCat extends AdvancedRobot with BotCatable {
    * onScannedRobot: What to do when you see another robot
    */
   override def onScannedRobot(e: ScannedRobotEvent) {
-    tankManager.onScannedRobot(e, getX(), getY(), getHeading());
+    starCatRunner.botCatable.onScannedRobot(e, getX(), getY(), getHeading());
   }
 
   override def onBulletHit(event: BulletHitEvent) {
-    bulletManager.add(event)
+    starCatRunner.botCatable.add(event)
   }
 
   override def onBulletMissed(event: BulletMissedEvent) {
-    bulletManager.add(event)
+    starCatRunner.botCatable.add(event)
   }
 
   /**
    * This method is called when another robot dies.
    */
   override def onRobotDeath(event: RobotDeathEvent) {
-    tankManager.onRobotDeath(event)
+    starCatRunner.botCatable.onRobotDeath(event)
   }
 
   override def onPaint(g: Graphics2D) {
     botCatPainter.onPaint(g);
-  }
-
-  def getRecentBulletHitEvents(): List[BulletHitEvent] = {
-    bulletManager.getRecentBulletHitEvents()
-  }
-
-  def getRecentBulletMissedEvents(): List[BulletMissedEvent] = {
-    bulletManager.getRecentBulletMissedEvents()
   }
 
   /**
@@ -114,12 +83,10 @@ class BotCat extends AdvancedRobot with BotCatable {
    * @see robocode.Robot#onWin(robocode.WinEvent)
    */
   override def onWin(event: WinEvent) {
-    isAlive = false
     starCatRunner.stop()
   }
 
   override def onDeath(event: DeathEvent) {
-    isAlive = false
     starCatRunner.stop()
   }
 
@@ -128,10 +95,11 @@ class BotCat extends AdvancedRobot with BotCatable {
   // ---------------------------------------------------------------------------
 
   private def createChromosome(): Chromosome = {
-    val file = getDataFile(CHROMOSOME_FILE_NAME);
+    val file = getDataFile(CHROMOSOME_FILE_NAME)
 
     new PropertyUtilities().readInProperties(file) match{
       case Some(properties) => new BotcatChromosome(properties)
+      case None => throw new Exception("property file not read in: " + CHROMOSOME_FILE_NAME)
     }
   }
 
@@ -165,7 +133,10 @@ class BotCat extends AdvancedRobot with BotCatable {
    * Perform a move on the robotCode battle field
    */
   private def move() {
-    val robotAction = robotMovement.popMovement()
+    val robotAction = starCatRunner.botCatable.getMovement()
+    
+    println("movement: " + robotAction)
+    //blocking not good, but need to work with only one thread here.
     robotAction.robotActionType match {
       case RobotActionType.FORWARD =>{
         setAhead(forwardMovementAmount * robotAction.amount);
@@ -193,7 +164,7 @@ class BotCat extends AdvancedRobot with BotCatable {
       }
     }
     
-    setTurnRadarRight(RobotConstance.ONE_REV);
-    execute();
+    setTurnRadarRight(RobotConstance.ONE_REV)
+    execute()
   }
 }

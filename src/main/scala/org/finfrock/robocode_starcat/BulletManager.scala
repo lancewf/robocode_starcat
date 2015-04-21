@@ -6,12 +6,10 @@ import robocode.BulletMissedEvent
 /**
  * @author lancewf
  */
-class BulletManager(robot:BotCatable) {
+class BulletManager(maximumBulletAge:Long) {
     // -------------------------------------------------------------------------
   // Private Data
   // -------------------------------------------------------------------------
-  
-  private var maximumBulletAge = 80L
   
   private var bulletHitEvents = List[BulletHitEvent]()
   
@@ -21,45 +19,39 @@ class BulletManager(robot:BotCatable) {
   // Public Members
   // -------------------------------------------------------------------------
   
-  def setMaximumBulletAge(maximumBulletAge:Long){
-    this.maximumBulletAge = maximumBulletAge;
-  }
-  
-  def getRecentBulletHitEvents():List[BulletHitEvent] ={
-    update()
+  def getRecentBulletHitEvents(robotTime:Long):List[BulletHitEvent] ={
+    update(robotTime)
     
     bulletHitEvents
   }
   
-  def getRecentBulletMissedEvents():List[BulletMissedEvent] ={
-    update();
+  def getRecentBulletMissedEvents(robotTime:Long):List[BulletMissedEvent] ={
+    update(robotTime);
     bulletMissedEvents
   }
   
-  def add(event:BulletHitEvent){
+  def add(event:BulletHitEvent, robotTime:Long){
     bulletHitEvents ::= event
     
-    update()
+    update(robotTime)
   }
   
-  def add(event:BulletMissedEvent ){
+  def add(event:BulletMissedEvent, robotTime:Long){
     bulletMissedEvents ::= event
     
-    update();
+    update(robotTime)
   }
   
   // -------------------------------------------------------------------------
   // Private Members
   // -------------------------------------------------------------------------
   
-  private def update(){
-    val currentTime = robot.getTime();
-    
+  private def update(robotTime:Long){
     var removedBulletHitEvents = List[BulletHitEvent]()
       for (bulletHitEvent <- bulletHitEvents) {
         val time = bulletHitEvent.getTime();
 
-        val diff = currentTime - time;
+        val diff = robotTime - time;
 
         if (diff > maximumBulletAge) {
           removedBulletHitEvents ::= bulletHitEvent
@@ -74,7 +66,7 @@ class BulletManager(robot:BotCatable) {
       for (bulletMissedEvent <- bulletMissedEvents) {
         val time = bulletMissedEvent.getTime();
 
-        val diff = currentTime - time;
+        val diff = robotTime - time;
 
         if (diff > maximumBulletAge) {
           removedBulletMissedEvents ::= bulletMissedEvent

@@ -207,6 +207,7 @@ class GenenticUI(generationRunner: GenerationRunner,
 
               thread.start();
             }
+            case None => throw new Exception("property file not read in: " + file.getAbsolutePath)
           }
         }
       }
